@@ -523,7 +523,7 @@ class ModelDeclarativeMetaclass(DeclarativeMetaclass):
             declared_fields = new_class.fields
 
             field_list = []
-            for f in sorted(model_opts.fields + model_opts.many_to_many):
+            for f in model_opts.fields + model_opts.many_to_many:
                 if opts.fields is not None and not f.name in opts.fields:
                     continue
                 if opts.exclude and f.name in opts.exclude:
@@ -535,7 +535,7 @@ class ModelDeclarativeMetaclass(DeclarativeMetaclass):
                                                           readonly=False)
                 field_list.append((f.name, field, ))
 
-            new_class.fields.update(OrderedDict(field_list))
+            new_class.fields.update(OrderedDict(sorted(field_list)))
 
             # add fields that follow relationships
             if opts.fields is not None:
