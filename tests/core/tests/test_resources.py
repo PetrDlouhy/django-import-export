@@ -6,13 +6,13 @@ from datetime import date
 from decimal import Decimal
 from unittest import mock, skip, skipUnless
 
+import django
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import DatabaseError, IntegrityError
 from django.db.models import Count
-from django.db.models.fields import FieldDoesNotExist
 from django.test import TestCase, TransactionTestCase, skipUnlessDBFeature
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.html import strip_tags
 
 from import_export import fields, resources, results, widgets
@@ -31,6 +31,12 @@ from ..models import (
     WithDynamicDefault,
     WithFloatField
 )
+
+if django.VERSION[0] >= 3:
+    from django.core.exceptions import FieldDoesNotExist
+else:
+    from django.db.models.fields import FieldDoesNotExist
+
 
 
 class MyResource(resources.Resource):
@@ -253,6 +259,23 @@ class ModelResourceTest(TestCase):
         instance = resource.get_instance(instance_loader, self.dataset.dict[0])
         self.assertEqual(instance, self.book)
 
+    def test_get_instance_import_id_fields_with_custom_column_name(self):
+        class BookResource(resources.ModelResource):
+            name = fields.Field(attribute='name', column_name='book_name', widget=widgets.CharWidget())
+
+            class Meta:
+                model = Book
+                import_id_fields = ['name']
+
+        dataset = tablib.Dataset(headers=['id', 'book_name', 'author_email', 'price'])
+        row = [self.book.pk, 'Some book', 'test@example.com', "10.25"]
+        dataset.append(row)
+
+        resource = BookResource()
+        instance_loader = resource._meta.instance_loader_class(resource)
+        instance = resource.get_instance(instance_loader, dataset.dict[0])
+        self.assertEqual(instance, self.book)
+
     def test_get_instance_usually_defers_to_instance_loader(self):
         self.resource._meta.import_id_fields = ['id']
 
@@ -285,6 +308,7 @@ class ModelResourceTest(TestCase):
         headers = self.resource.get_export_headers()
         self.assertEqual(headers, ['published_date', 'id', 'name', 'author',
                                    'author_email', 'published_time', 'price',
+                                   'added',
                                    'categories', ])
 
     def test_export(self):
@@ -380,17 +404,35 @@ class ModelResourceTest(TestCase):
             class Meta:
                 model = Author
                 clean_model_instances = True
+                export_order = ['id', 'name', 'birthday']
 
+        # create test dataset
+        # NOTE: column order is deliberately strange
+        dataset = tablib.Dataset(headers=['name', 'id'])
+        dataset.append(['123', '1'])
+
+        # run import_data()
         resource = TestResource()
-        dataset = tablib.Dataset(headers=['id', 'name'])
-        dataset.append(['', '123'])
-
         result = resource.import_data(dataset, raise_errors=False)
+
+        # check has_validation_errors()
         self.assertTrue(result.has_validation_errors())
-        self.assertEqual(result.invalid_rows[0].error_count, 1)
+
+        # check the invalid row itself
+        invalid_row = result.invalid_rows[0]
+        self.assertEqual(invalid_row.error_count, 1)
         self.assertEqual(
-            result.invalid_rows[0].field_specific_errors,
+            invalid_row.field_specific_errors,
             {'name': ["'123' is not a valid value"]}
+        )
+        # diff_header and invalid_row.values should match too
+        self.assertEqual(
+            result.diff_headers,
+            ['id', 'name', 'birthday']
+        )
+        self.assertEqual(
+            invalid_row.values,
+            ('1', '123', '---')
         )
 
     def test_known_invalid_fields_are_excluded_from_model_instance_cleaning(self):
@@ -896,7 +938,7 @@ class ModelResourceTransactionTest(TransactionTestCase):
 
         category_field = resource.fields['categories']
         categories_diff = row_diff[fields.index(category_field)]
-        self.assertEqual(strip_tags(categories_diff), force_text(cat1.pk))
+        self.assertEqual(strip_tags(categories_diff), force_str(cat1.pk))
 
         # check that it is really rollbacked
         self.assertFalse(Book.objects.filter(name='FooBook'))
