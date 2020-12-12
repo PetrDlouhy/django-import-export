@@ -41,8 +41,12 @@ class ExportForm(forms.Form):
         label=_('Format'),
         choices=(),
         )
+    resource = forms.ChoiceField(
+        label=_('Resource'),
+        choices=(),
+        )
 
-    def __init__(self, formats, *args, **kwargs):
+    def __init__(self, formats, resources, *args, **kwargs):
         super().__init__(*args, **kwargs)
         choices = []
         for i, f in enumerate(formats):
@@ -51,6 +55,15 @@ class ExportForm(forms.Form):
             choices.insert(0, ('', '---'))
 
         self.fields['file_format'].choices = choices
+
+        try:
+            resource_choices = []
+            for i, resource in enumerate(resources):
+                resource_choices.append((i, resource.get_display_name()))
+            print(resource_choices)
+            self.fields['resource'].choices = resource_choices
+        except TypeError:
+            del self.fields['resource']
 
 
 def export_action_form_factory(formats):

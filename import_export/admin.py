@@ -453,7 +453,10 @@ class ExportMixin(ImportExportMixinBase):
         if not self.has_export_permission(request):
             raise PermissionDenied
 
-        resource_class = self.get_export_resource_class()
+        if 'resource' in request.POST:
+            resource_class = self.get_export_resource_class()[int(request.POST['resource'])]
+        else:
+            resource_class = self.get_export_resource_class()
         data = resource_class(**self.get_export_resource_kwargs(request)).export(queryset, *args, **kwargs)
         export_data = file_format.export_data(data)
         return export_data
@@ -469,7 +472,7 @@ class ExportMixin(ImportExportMixinBase):
             raise PermissionDenied
 
         formats = self.get_export_formats()
-        form = ExportForm(formats, request.POST or None)
+        form = ExportForm(formats, self.get_resource_class(), request.POST or None)
         if form.is_valid():
             file_format = formats[
                 int(form.cleaned_data['file_format'])
