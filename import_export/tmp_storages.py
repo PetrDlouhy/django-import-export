@@ -8,10 +8,10 @@ from django.core.files.storage import default_storage
 
 
 class BaseStorage:
-    def __init__(self, name=None, read_mode="r", encoding=None):
-        self.name = name
-        self.read_mode = read_mode
-        self.encoding = encoding
+    def __init__(self, **kwargs):
+        self.name = kwargs.get("name", None)
+        self.read_mode = kwargs.get("read_mode", "r")
+        self.encoding = kwargs.get("encoding", None)
 
     def save(self, data):
         raise NotImplementedError
@@ -64,14 +64,16 @@ class CacheStorage(BaseStorage):
         return cache.get(self.CACHE_PREFIX + self.name)
 
     def remove(self):
-        cache.delete(self.name)
+        cache.delete(self.CACHE_PREFIX + self.name)
 
 
 class MediaStorage(BaseStorage):
     MEDIA_FOLDER = "django-import-export"
 
-    def __init__(self, name=None, read_mode="rb", encoding=None):
-        super().__init__(name, read_mode=read_mode, encoding=encoding)
+    def __init__(self, **kwargs):
+        # issue 1589 - Ensure that for MediaStorage, we read in binary mode
+        kwargs.update({"read_mode": "rb"})
+        super().__init__(**kwargs)
 
     def save(self, data):
         if not self.name:

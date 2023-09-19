@@ -1,15 +1,65 @@
 Changelog
 =========
 
-3.3.0 (unreleased)
+4.0.0-alpha.0 (2023-09-19)
 ------------------
 
-- Added support for Django 4.2 (#1570)
+- Refactor build process (#1630)
+- fix cooperation with adminsortable2 (#1633)
+
+
+3.3.1 (2023-09-14)
+------------------
+
+- Added `.readthedocs.yaml` (#1625)
+
+3.3.0 (2023-09-14)
+------------------
+
+Deprecations
+############
+
+- Remove 'escape output' deprecation (#1618)
+
+  - Removal of deprecated :ref:`IMPORT_EXPORT_ESCAPE_OUTPUT_ON_EXPORT`.
+
+  - Deprecation of :ref:`IMPORT_EXPORT_ESCAPE_HTML_ON_EXPORT`.  Refer to :ref:`installation` docs.
+
+Enhancements
+############
+
 - Refactoring and fix to support filtering exports (#1579)
 - Store ``instance`` and ``original`` object in :class:`~import_export.results.RowResult` (#1584)
-- Removed reference to tablib dev from tox build (#1603)
 - Add customizable blocks in import.html (#1598)
+- Include 'allowed formats' settings (#1606)
+- Add kwargs to enable CharWidget to return values as strings (#1623)
+
+Internationalization
+####################
+
+- Add Finnish translation (#1588)
 - Updated ru translation (#1604)
+- Fixed badly formatted translation string (#1622)
+- Remove 'escape output' deprecation (#1618)
+
+Fixes
+#####
+
+- Do not decode bytes when writing to MediaStorage (#1615)
+- Fix for cache entries not removed (#1621)
+
+Development
+###########
+
+- Added support for Django 4.2 (#1570)
+- Add automatic formatting and linting (#1571)
+- removed duplicate admin integration tests (#1616)
+- Removed support for python3.7 and django4.0 (past EOL) (#1618)
+
+Documentation
+#############
+
+- Updated documentation for interoperability with third party libraries (#1614)
 
 3.2.0 (2023-04-12)
 ------------------
@@ -44,6 +94,7 @@ Changelog
 3.1.0 (2023-02-21)
 ------------------
 
+- Float and Decimal widgets use LANGUAGE_CODE on export (#1501)
 - Add optional dehydrate method param (#1536)
 
   - ``exceptions`` module has been undeprecated

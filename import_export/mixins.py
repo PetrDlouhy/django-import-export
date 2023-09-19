@@ -15,9 +15,20 @@ logger = logging.getLogger(__name__)
 
 
 class BaseImportExportMixin:
-    formats = base_formats.DEFAULT_FORMATS
     resource_class = None
     resource_classes = []
+
+    @property
+    def formats(self):
+        return getattr(settings, "IMPORT_EXPORT_FORMATS", base_formats.DEFAULT_FORMATS)
+
+    @property
+    def export_formats(self):
+        return getattr(settings, "EXPORT_FORMATS", self.formats)
+
+    @property
+    def import_formats(self):
+        return getattr(settings, "IMPORT_FORMATS", self.formats)
 
     def check_resource_classes(self, resource_classes):
         if resource_classes and not hasattr(resource_classes, "__getitem__"):
@@ -85,7 +96,7 @@ class BaseImportMixin(BaseImportExportMixin):
         """
         Returns available import formats.
         """
-        return [f for f in self.formats if f().can_import()]
+        return [f for f in self.import_formats if f().can_import()]
 
     def get_import_resource_kwargs(self, request, *args, **kwargs):
         return self.get_resource_kwargs(request, *args, **kwargs)
@@ -102,20 +113,13 @@ class BaseExportMixin(BaseImportExportMixin):
     escape_formulae = False
 
     @property
-    def should_escape_output(self):
-        if hasattr(settings, "IMPORT_EXPORT_ESCAPE_OUTPUT_ON_EXPORT"):
+    def should_escape_html(self):
+        if hasattr(settings, "IMPORT_EXPORT_ESCAPE_HTML_ON_EXPORT"):
             warnings.warn(
-                "IMPORT_EXPORT_ESCAPE_OUTPUT_ON_EXPORT will be deprecated "
-                "in a future release. "
-                "Refer to docs for new attributes.",
+                "IMPORT_EXPORT_ESCAPE_HTML_ON_EXPORT is deprecated and "
+                "will be removed in a future release.",
                 DeprecationWarning,
             )
-        return getattr(
-            settings, "IMPORT_EXPORT_ESCAPE_OUTPUT_ON_EXPORT", self.escape_exported_data
-        )
-
-    @property
-    def should_escape_html(self):
         v = getattr(settings, "IMPORT_EXPORT_ESCAPE_HTML_ON_EXPORT", self.escape_html)
         if v is True:
             logger.debug("IMPORT_EXPORT_ESCAPE_HTML_ON_EXPORT is enabled")
@@ -134,7 +138,7 @@ class BaseExportMixin(BaseImportExportMixin):
         """
         Returns available export formats.
         """
-        return [f for f in self.formats if f().can_export()]
+        return [f for f in self.export_formats if f().can_export()]
 
     def get_export_resource_classes(self):
         """
@@ -187,9 +191,7 @@ class ExportViewMixin(BaseExportMixin):
         Returns file_format representation for given queryset.
         """
         data = self.get_data_for_export(self.request, queryset, *args, **kwargs)
-        export_data = file_format.export_data(
-            data, escape_output=self.should_escape_output
-        )
+        export_data = file_format.export_data(data)
         return export_data
 
     def get_context_data(self, **kwargs):
