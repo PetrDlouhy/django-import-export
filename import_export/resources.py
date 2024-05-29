@@ -1069,9 +1069,11 @@ class Resource(metaclass=DeclarativeMetaclass):
 
         if isinstance(fields, list) and fields:
             return [
-                field for field in export_fields
-                if field.attribute in fields or field.column_name in fields or
-                field.original_name in fields
+                field
+                for field in export_fields
+                if field.attribute in fields
+                or field.column_name in fields
+                or field.original_name in fields
             ]
 
         return export_fields
